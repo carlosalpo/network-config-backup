@@ -63,12 +63,9 @@ Netmiko gives us a good bridge between those two worlds:
 
 ```text
 What I normally do:
-
 Laptop -> SSH -> Network Device -> CLI commands
 
-
 What the script does:
-
 Python -> Netmiko -> SSH -> Network Device -> CLI commands
 ```
 
@@ -98,16 +95,10 @@ configurations ending up in the public repository.
 
 ## Requirements
 
-You will need:
+You will need Python 3, SSH connectivity to the devices and a user account with
+enough privileges to read the running configuration.
 
-- Python 3
-- SSH connectivity to the network devices
-- A user account with enough privileges to read the running configuration
-
-The Python dependencies are intentionally minimal:
-
-- Netmiko
-- PyYAML
+The Python dependencies are intentionally minimal: Netmiko and PyYAML.
 
 ---
 
@@ -121,19 +112,10 @@ project stay separate from everything else installed on the system.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-Then install the dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
----
-
-## Create your inventory
-
-Start by copying the example:
+Start by copying the example inventory:
 
 ```bash
 cp inventory.example.yaml inventory.yaml
@@ -156,20 +138,8 @@ devices:
     device_type: cisco_nxos
 ```
 
-For IOS and IOS-XE I'm using:
-
-```yaml
-device_type: cisco_ios
-```
-
-For NX-OS:
-
-```yaml
-device_type: cisco_nxos
-```
-
-The `name` field is simply the name I want to use when creating the backup
-file.
+For IOS and IOS-XE I'm using `cisco_ios`. For NX-OS I'm using `cisco_nxos`.
+The `name` field is simply the name I want to use when creating the backup file.
 
 ---
 
@@ -233,45 +203,15 @@ failure and continues with the rest of the inventory.
 This is a lab project, but I still think it is worth building good habits from
 the beginning.
 
-A few things to keep in mind:
-
-- Don't put passwords directly in the Python script.
-- Don't commit real configuration backups to a public repository.
-- Be careful with inventories containing production addressing or hostnames.
-- Use a dedicated account with only the privileges the automation actually needs.
-- Remember that running configurations can contain credentials, SNMP
-  communities, routing information and other sensitive data.
+Don't put passwords directly in the Python script, don't commit real
+configuration backups to a public repository, and be careful with inventories
+containing production addressing or hostnames. Running configurations can also
+contain credentials, SNMP communities, routing information and other sensitive
+data.
 
 For a larger environment I would not rely on environment variables alone. A
-proper secrets management solution would make more sense.
-
-But for this first lab, I want to keep the number of moving parts small.
-
----
-
-## What am I actually learning here?
-
-The interesting part of this project isn't really the configuration backup.
-
-The backup is just the use case.
-
-By building it we are already touching several concepts that become important
-as we move deeper into Network Automation:
-
-```text
-YAML                  -> storing structured data
-Python                -> automation logic
-Netmiko               -> interacting with network devices
-SSH                    -> device connectivity
-Environment variables -> basic credential handling
-Exceptions             -> dealing with failures
-Git                    -> versioning the automation itself
-```
-
-That's the main reason I like starting with something simple like this.
-
-We can concentrate on understanding the pieces instead of immediately hiding
-everything behind a larger automation framework.
+proper secrets management solution would make more sense. For this first lab,
+though, I want to keep the number of moving parts small.
 
 ---
 
@@ -279,8 +219,6 @@ everything behind a larger automation framework.
 
 I plan to keep evolving the same project instead of jumping directly into a
 much more complicated example.
-
-Something along these lines:
 
 ```text
 v1  Basic configuration backup
@@ -296,11 +234,10 @@ v1  Basic configuration backup
  v6  Rebuild the workflow using NETCONF
 ```
 
-The last step is particularly interesting to me.
-
-At that point we can compare the CLI-based approach we started with against a
-model-driven approach and understand why technologies such as NETCONF and YANG
-matter, instead of learning them only as abstract concepts.
+The last step is particularly interesting to me. At that point we can compare
+the CLI-based approach we started with against a model-driven approach and
+understand why technologies such as NETCONF and YANG matter, instead of
+learning them only as abstract concepts.
 
 For now, though, the objective is much simpler:
 

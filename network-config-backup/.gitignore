@@ -1,0 +1,8 @@
+inventory.yaml
+backups/*
+!backups/.gitkeep
+__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/

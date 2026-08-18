@@ -1,40 +1,83 @@
-# network-config-backup
+# Network Configuration Backup with Python
 
-Let's learn Network Automation by solving a networking problem we already understand.
+I wanted to put together a simple Network Automation example for network
+engineers who are starting to experiment with Python.
 
-This first version backs up running configurations from Cisco network devices using Python and Netmiko. It is intentionally small. The goal is not to build an enterprise backup platform. The goal is to see how a useful automation workflow is built, step by step, with tools that are approachable for network engineers.
+There are many ways to start learning automation, but I think it is easier
+when the first use case is something we already understand from the networking
+side.
 
-## What Problem Are We Solving?
+So I decided to start with configuration backups.
 
-Network engineers often need a current copy of device configurations before a change, after a change, during troubleshooting, or as part of normal operational hygiene.
-
-Manually, that usually looks like this:
+Most of us have done this manually many times:
 
 ```text
 SSH -> Login -> show running-config -> Copy -> Save
 ```
 
-That works for one router or switch. It becomes slow and error-prone when you need to repeat it across many devices.
+There is nothing particularly complicated about that workflow. The problem is
+that doing it manually does not scale very well.
 
-With automation, we keep the same network task but let Python handle the repetition:
+This project takes that same workflow and lets Python handle the repetitive part:
 
 ```text
 inventory.yaml -> Python -> Netmiko -> Network Devices -> backups/
 ```
 
-## What You Will Learn
+That's really all this first version is intended to do.
 
-In this mini-lab you will work with:
+It is not meant to replace a configuration management or backup platform. I'm
+using it as a practical way to explore Python, Netmiko and Network Automation
+with a use case that makes sense to a network engineer.
 
-- Python basics
-- YAML files
-- SSH automation
-- Device inventories
-- Credential handling with environment variables
-- Exception handling
-- Working with network devices programmatically
+---
 
-## Project Structure
+## What the script does
+
+The script reads a list of devices from a YAML inventory, connects to each one
+using SSH, retrieves the running configuration and saves it locally.
+
+For now I am keeping the workflow intentionally simple:
+
+1. Read the device inventory.
+2. Get the credentials from environment variables.
+3. Connect to the device with Netmiko.
+4. Run `show running-config`.
+5. Save the configuration with the device name and timestamp.
+6. Move on to the next device if something fails.
+7. Show a simple summary when the job finishes.
+
+The first version supports Cisco IOS/IOS-XE and NX-OS.
+
+---
+
+## Why I started with Netmiko
+
+I could have started this project with NETCONF, RESTCONF or APIs, but that adds
+several concepts at the same time.
+
+For a first exercise I wanted the automation to look very similar to what I
+would normally do manually from the CLI.
+
+Netmiko gives us a good bridge between those two worlds:
+
+```text
+What I normally do:
+
+Laptop -> SSH -> Network Device -> CLI commands
+
+
+What the script does:
+
+Python -> Netmiko -> SSH -> Network Device -> CLI commands
+```
+
+Once that workflow is clear, moving into model-driven approaches such as
+NETCONF becomes much easier to understand.
+
+---
+
+## Project structure
 
 ```text
 network-config-backup/
@@ -47,41 +90,56 @@ network-config-backup/
     └── .gitkeep
 ```
 
+I keep the actual `inventory.yaml` and generated configuration backups outside
+Git tracking because I don't want lab IP addresses, hostnames or device
+configurations ending up in the public repository.
+
+---
+
 ## Requirements
 
-- Python 3
-- SSH access to Cisco IOS, IOS-XE, or NX-OS devices
-- A user account that can run `show running-config`
+You will need:
 
-This lab uses:
+- Python 3
+- SSH connectivity to the network devices
+- A user account with enough privileges to read the running configuration
+
+The Python dependencies are intentionally minimal:
 
 - Netmiko
 - PyYAML
 
-## Installation
+---
 
-Create and activate a virtual environment:
+## Getting started
+
+Clone the repository and move into the project directory.
+
+I normally prefer using a Python virtual environment so the packages for this
+project stay separate from everything else installed on the system.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-Install the required Python packages:
+Then install the dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Inventory
+---
 
-Copy the example inventory:
+## Create your inventory
+
+Start by copying the example:
 
 ```bash
 cp inventory.example.yaml inventory.yaml
 ```
 
-Edit `inventory.yaml` with your own lab devices:
+Then add your own devices:
 
 ```yaml
 devices:
@@ -98,56 +156,54 @@ devices:
     device_type: cisco_nxos
 ```
 
-For Cisco IOS and IOS-XE, use:
+For IOS and IOS-XE I'm using:
 
 ```yaml
 device_type: cisco_ios
 ```
 
-For Cisco NX-OS, use:
+For NX-OS:
 
 ```yaml
 device_type: cisco_nxos
 ```
 
-The real `inventory.yaml` file is ignored by Git so you can keep lab-specific IP addresses and hostnames out of the public repository.
+The `name` field is simply the name I want to use when creating the backup
+file.
+
+---
 
 ## Credentials
 
-Do not put usernames or passwords in the inventory file.
+I don't store usernames or passwords inside the inventory.
 
-Set them as environment variables before running the script:
+Before running the script, set the credentials as environment variables:
 
 ```bash
 export NETWORK_USERNAME="your_username"
 export NETWORK_PASSWORD="your_password"
 ```
 
-If your devices require enable mode before showing the running configuration, you can also set:
+If the device requires an enable secret:
 
 ```bash
 export NETWORK_ENABLE_SECRET="your_enable_secret"
 ```
 
-## Running the Backup
+Keeping credentials outside the code is a small detail, but it is an important
+habit when we start putting automation projects into Git.
 
-From this directory, run:
+---
+
+## Run the backup
+
+Now run:
 
 ```bash
 python backup.py
 ```
 
-The script will:
-
-1. Read devices from `inventory.yaml`.
-2. Read credentials from environment variables.
-3. SSH to each device using Netmiko.
-4. Run `show running-config`.
-5. Save each configuration under `backups/`.
-6. Continue to the next device if one device fails.
-7. Print a short summary at the end.
-
-## Example Output
+You should see something similar to:
 
 ```text
 Starting configuration backup for 3 device(s).
@@ -166,23 +222,88 @@ Successful backups: 2
 Failed backups:     1
 ```
 
-## Security Considerations
+One thing I wanted from the beginning was for a failed device not to stop the
+entire job. If one router or switch cannot be reached, the script reports the
+failure and continues with the rest of the inventory.
 
-- Never commit passwords to Git.
-- Keep real inventories out of public repositories when they contain sensitive hostnames, IP addresses, or site details.
-- Use a dedicated read-only or least-privilege account when possible.
-- Protect any generated backup files because running configurations may contain SNMP communities, local users, keys, routing details, or other sensitive information.
-- Consider storing production credentials in a secrets manager as your automation maturity grows.
+---
 
-## Where We Go From Here
+## A note about security
 
-This repository starts small on purpose. Future versions can build on the same idea:
+This is a lab project, but I still think it is worth building good habits from
+the beginning.
 
-- v1 - Basic configuration backup
-- v2 - Better inventory and multiple platforms
-- v3 - Logging and error handling improvements
-- v4 - Configuration change detection
-- v5 - Git configuration history
-- v6 - NETCONF / model-driven programmability
+A few things to keep in mind:
 
-The important part is the mindset: start with a real networking workflow, automate one useful step, understand it, and then improve it.
+- Don't put passwords directly in the Python script.
+- Don't commit real configuration backups to a public repository.
+- Be careful with inventories containing production addressing or hostnames.
+- Use a dedicated account with only the privileges the automation actually needs.
+- Remember that running configurations can contain credentials, SNMP
+  communities, routing information and other sensitive data.
+
+For a larger environment I would not rely on environment variables alone. A
+proper secrets management solution would make more sense.
+
+But for this first lab, I want to keep the number of moving parts small.
+
+---
+
+## What am I actually learning here?
+
+The interesting part of this project isn't really the configuration backup.
+
+The backup is just the use case.
+
+By building it we are already touching several concepts that become important
+as we move deeper into Network Automation:
+
+```text
+YAML                  -> storing structured data
+Python                -> automation logic
+Netmiko               -> interacting with network devices
+SSH                    -> device connectivity
+Environment variables -> basic credential handling
+Exceptions             -> dealing with failures
+Git                    -> versioning the automation itself
+```
+
+That's the main reason I like starting with something simple like this.
+
+We can concentrate on understanding the pieces instead of immediately hiding
+everything behind a larger automation framework.
+
+---
+
+## Where I want to take this next
+
+I plan to keep evolving the same project instead of jumping directly into a
+much more complicated example.
+
+Something along these lines:
+
+```text
+v1  Basic configuration backup
+ |
+ v2  Better inventory + additional platforms
+ |
+ v3  Structured logging + better error reporting
+ |
+ v4  Detect configuration changes
+ |
+ v5  Store configuration history in Git
+ |
+ v6  Rebuild the workflow using NETCONF
+```
+
+The last step is particularly interesting to me.
+
+At that point we can compare the CLI-based approach we started with against a
+model-driven approach and understand why technologies such as NETCONF and YANG
+matter, instead of learning them only as abstract concepts.
+
+For now, though, the objective is much simpler:
+
+**Take one networking task you already understand and automate it.**
+
+Then improve it one step at a time.

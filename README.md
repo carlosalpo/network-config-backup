@@ -208,7 +208,7 @@ For a larger environment I would not rely on environment variables alone. A prop
 I plan to keep evolving the same project instead of jumping directly into a much more complicated example.
 
 ```text
-v1  Basic configuration backup
+ v1  Basic configuration backup
  |
  v2  Better inventory + additional platforms
  |

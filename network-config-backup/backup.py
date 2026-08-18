@@ -18,8 +18,16 @@ def load_inventory():
         print("inventory.yaml was not found. Copy inventory.example.yaml and edit it for your lab.")
         sys.exit(1)
 
-    with INVENTORY_FILE.open("r", encoding="utf-8") as file:
-        inventory = yaml.safe_load(file) or {}
+    try:
+        with INVENTORY_FILE.open("r", encoding="utf-8") as file:
+            inventory = yaml.safe_load(file) or {}
+    except yaml.YAMLError as error:
+        print(f"Could not read inventory.yaml: {error}")
+        sys.exit(1)
+
+    if not isinstance(inventory, dict):
+        print("inventory.yaml must contain a 'devices' list.")
+        sys.exit(1)
 
     devices = inventory.get("devices", [])
     if not devices:
@@ -96,8 +104,7 @@ def main():
     for device in devices:
         name = device.get("name") or device.get("host") or "unknown-device"
 
-        # If one switch is unreachable, I do not want the entire backup job to stop.
-        # Each device gets its own try/except block, like troubleshooting one node at a time.
+        # If one device is unreachable, I do not want the entire backup job to stop.
         try:
             backup_device(device, username, password, enable_secret)
             successful_backups += 1
@@ -113,6 +120,9 @@ def main():
     print("Backup summary")
     print(f"Successful backups: {successful_backups}")
     print(f"Failed backups:     {failed_backups}")
+
+    if failed_backups:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -1,230 +1,123 @@
-# Network Configuration Backup with Python
+# Network Configuration Backup
 
-A simple Network Automation exercise using Python, Netmiko and YAML to back up Cisco device configurations.
+A guided terminal assistant for collecting Cisco configurations and diagnostic queries over SSH with Netmiko. Import devices, assign access profiles, select queries by group and platform, correct individual failures, and export a private collection with an auditable report.
 
-I wanted to start this project with something familiar.
+**Review preview: 0.2.0rc1. Real-device validation is pending.** The screenshots below come from the actual application using its offline synthetic adapter. They are not evidence of successful Cisco backups. The original project started as a small YAML-to-configuration script; its [original account](docs/original-project-story.md) is preserved.
 
-Most network engineers have done this hundreds of times:
+## Try the assistant
 
-```text
-SSH -> Login -> show running-config -> Copy -> Save
-```
-
-So instead of starting with APIs, NETCONF or a larger automation framework, I wanted to take that workflow and automate it first.
-
-```text
-inventory.yaml
-      |
-      v
-    Python
-      |
-      v
-   Netmiko
-      |
-      v
-     SSH
-      |
-      v
-Cisco Devices
-      |
-      v
-   backups/
-```
-
-That's really the idea behind this first version.
-
-It reads a small YAML inventory, connects to IOS/IOS-XE and NX-OS devices over SSH, retrieves the running configuration and saves each backup locally.
-
-This isn't intended to be a configuration management platform. It's the first step in a series where I'll keep taking the same automation and improving it one piece at a time.
-
----
-
-## What the script does
-
-The script reads a list of devices from a YAML inventory, connects to each one using SSH, retrieves the running configuration and saves it locally.
-
-For now I am keeping the workflow intentionally simple:
-
-1. Read the device inventory.
-2. Get the credentials from environment variables.
-3. Connect to the device with Netmiko.
-4. Run `show running-config`.
-5. Save the configuration with the device name and timestamp.
-6. Move on to the next device if something fails.
-7. Show a simple summary when the job finishes.
-
-The first version supports Cisco IOS/IOS-XE and NX-OS.
-
----
-
-## Why I started with Netmiko
-
-I could have started this project with NETCONF, RESTCONF or APIs, but that adds several concepts at the same time.
-
-For a first exercise I wanted the automation to look very similar to what I would normally do manually from the CLI.
-
-Netmiko gives us a good bridge between those two worlds:
-
-```text
-What I normally do:
-Laptop -> SSH -> Network Device -> CLI commands
-
-What the script does:
-Python -> Netmiko -> SSH -> Network Device -> CLI commands
-```
-
-Once that workflow is clear, moving into model-driven approaches such as NETCONF becomes much easier to understand.
-
----
-
-## Project structure
-
-```text
-network-config-backup/
-├── README.md
-├── backup.py
-├── inventory.example.yaml
-├── requirements.txt
-├── .gitignore
-└── backups/
-    └── .gitkeep
-```
-
-I keep the actual `inventory.yaml` and generated configuration backups outside Git tracking because I don't want lab IP addresses, hostnames or device configurations ending up in the public repository.
-
----
-
-## Requirements
-
-You will need Python 3, SSH connectivity to the devices and a user account with enough privileges to read the running configuration.
-
-The Python dependencies are intentionally minimal: Netmiko and PyYAML.
-
----
-
-## Getting started
-
-Clone the repository and move into the project directory.
-
-I normally prefer using a Python virtual environment so the packages for this project stay separate from everything else installed on the system.
+Python 3.11–3.13 on macOS or Linux. Use a dedicated environment:
 
 ```bash
+git clone https://github.com/carlosalpo/network-config-backup.git
+cd network-config-backup
+git switch --detach v0.2.0-rc.1  # published preview
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -e .
+ncb --demo
 ```
 
-Start by copying the example inventory:
+`--demo` uses documentation IP addresses and a synthetic adapter that never opens network connections. It deliberately produces a permission failure on `access-01` so you can try a partial export. Add `show interfaces detailx` as a custom query to exercise correction and retry.
+
+For an authorized network, prepare an inventory and independently verified SSH host keys, then run:
 
 ```bash
-cp inventory.example.yaml inventory.yaml
+ncb --inventory /path/to/devices.csv
 ```
 
-Then add your own devices:
+No connection occurs until **Check & collect**. Use Tab / Shift+Tab to move, Space to toggle, Ctrl+N to continue, Ctrl+B to go back, and Ctrl+Q to quit. A compact layout supports 80×30 terminals; 150×52 provides room for side-by-side panels. The interface and documentation are in English.
 
-```yaml
-devices:
-  - name: branch-router-01
-    host: 192.0.2.10
-    device_type: cisco_ios
+## A collection in five steps
 
-  - name: access-switch-01
-    host: 192.0.2.20
-    device_type: cisco_ios
+### 1. Inventory
 
-  - name: dc-core-01
-    host: 192.0.2.30
-    device_type: cisco_nxos
+Load CSV, YAML or a text list of IP addresses/hostnames. Alternatively paste hosts and choose their platform. The table previews names, addresses, platforms, groups and sites. Edit your source file and reload before collection; replacing an inventory after collection requires restarting after export.
+
+[Example CSV](examples/devices.csv) · [Original YAML format](inventory.example.yaml)
+
+```csv
+name,host,device_type,group,site,port
+edge-01,192.0.2.11,cisco_xe,Campus,headquarters,22
+core-01,192.0.2.12,cisco_nxos,Datacenter,headquarters,22
+wan-01,198.51.100.21,cisco_xr,WAN,headquarters,22
 ```
 
-For IOS and IOS-XE I'm using `cisco_ios`. For NX-OS I'm using `cisco_nxos`. The `name` field is simply the name I want to use when creating the backup file.
+`device_type` accepts `cisco_ios`, `cisco_xe`, `cisco_xr`, or `cisco_nxos`. `platform` is an alternative column name. `group`, `site` and `port` are optional (defaults: `default`, `default`, `22`). Platform is declared by the operator, not automatically discovered. Duplicate names/targets, unsafe names, unexpected fields and embedded credentials are rejected.
 
----
+### 2. Credentials
 
-## Credentials
+Use one profile for every device, profiles by inventory group, or individual device profiles. Passwords, SSH-key passphrases and optional enable secrets are masked and kept in memory. Press **Save profile for this session** for every scope. Changing the assignment mode clears saved access profiles.
 
-I don't store usernames or passwords inside the inventory.
+![Actual credentials screen, offline synthetic inventory](docs/screenshots/credentials.svg)
 
-Before running the script, set the credentials as environment variables:
+Unknown or changed SSH host keys are rejected. Select an existing `known_hosts` file containing keys whose fingerprints you verified independently. The assistant does not enroll keys, disable checking, enable SSH, or enable NETCONF. Prefer an account restricted by device AAA to the necessary read commands. An optional enable secret explicitly requests privilege elevation; otherwise no `enable` is attempted.
 
-```bash
-export NETWORK_USERNAME="your_username"
-export NETWORK_PASSWORD="your_password"
-```
+### 3. Commands
 
-If the device requires an enable secret:
+Choose all devices or a group/platform pair. Select Configuration, Interfaces, Version & inventory, Routing, and Neighbors. Add custom consultation queries, one per line. **Apply selection to scope** replaces that scope's planned query list; it does not connect. Each device must have at least one query before collection can start.
 
-```bash
-export NETWORK_ENABLE_SECRET="your_enable_secret"
-```
+![Actual command selection screen, offline synthetic inventory](docs/screenshots/commands.svg)
 
-Keeping credentials outside the code is a small detail, but it is an important habit when we start putting automation projects into Git.
+Profiles adapt routing queries (`show route` for IOS XR, `show ip route` for the other declared platforms). Availability still depends on device model, software and permissions. See the [command policy and compatibility limits](docs/operations.md).
 
----
+### 4. Check & collect
 
-## Run the backup
+The check executes the selected queries and retains successful outputs; it is not a dry run. One SSH session is used per device, processed sequentially. Each query has its own outcome and UTC capture time. Results distinguish invalid/incomplete commands, denied permissions, connection/authentication failures, unknown keys, timeouts, empty or apparently truncated output, and application limits.
 
-Now run:
+![Actual failure review, offline synthetic responses](docs/screenshots/review.svg)
 
-```bash
-python backup.py
-```
+Select a failed row, edit its query, and **Retry selected**. Successful captures and their timestamps are retained. Or provide a reason and **Exclude with reason**. Excluded queries remain visible in the report and never make the collection complete. An authentication failure does not trigger retries for every query. A timed-out session is closed before any later query is attempted on that device.
 
-You should see something similar to:
+**Stop after current query** requests cooperative cancellation. It waits for the active connection/query timeout; it is not an immediate kill. Starting a new collection requires explicitly acknowledging discard of earlier captures. Export first if you need to keep them.
+
+### 5. Save
+
+Choose a local destination, acknowledge that raw outputs may contain secrets, and save. Unsuccessful queries do not prevent exporting successful ones. The collection is explicitly **partial** unless every planned query passed.
+
+![Actual partial export screen, offline synthetic responses](docs/screenshots/save.svg)
 
 ```text
-Starting configuration backup for 3 device(s).
-
-[branch-router-01] Connecting to 192.0.2.10...
-[branch-router-01] Backup saved to backups/branch-router-01_20260818-141522.cfg
-
-[access-switch-01] Connecting to 192.0.2.20...
-[access-switch-01] Backup saved to backups/access-switch-01_20260818-141530.cfg
-
-[dc-core-01] Connecting to 192.0.2.30...
-[dc-core-01] Backup failed: Authentication failed.
-
-Backup summary
-Successful backups: 2
-Failed backups:     1
+backup-<UTC timestamp>-<unique ID>/
+├── summary.html
+├── manifest.json
+├── SHA256SUMS
+└── sites/
+    └── headquarters/
+        └── edge-01/
+            ├── configuration/0001.txt
+            └── diagnostics/0002.txt
 ```
 
-One thing I wanted from the beginning was for a failed device not to stop the entire job. If one router or switch cannot be reached, the script reports the failure and continues with the rest of the inventory.
+The JSON manifest maps every output file to its device and query, records timestamps, failed attempts and exclusions, and hashes successful outputs. `SHA256SUMS` also covers the manifest and HTML report. A unique export directory prevents overwriting previous backups. On supported POSIX systems directories are private (0700) and files are private (0600). An export failure leaves a hidden `.ncb-incomplete-*` directory for deliberate recovery; it is never presented as a finished backup.
 
----
+**“Passed” means the query returned to a prompt without a recognized CLI error. “Complete” means all selected queries passed. Neither establishes configuration completeness, device health or successful restoration.** Different queries are captured at different times; this is not a transactional network snapshot.
 
-## A note about security
+## Existing script users
 
-This is a lab project, but I still think it is worth building good habits from the beginning.
+`python backup.py` remains available with the original `inventory.yaml`, `NETWORK_USERNAME`, `NETWORK_PASSWORD`, and optional `NETWORK_ENABLE_SECRET`. Install the updated requirements first. Optionally set `NETWORK_KNOWN_HOSTS` to a verified host-key file; otherwise `~/.ssh/known_hosts` is used.
 
-Don't put passwords directly in the Python script, don't commit real configuration backups to a public repository, and be careful with inventories containing production addressing or hostnames. Running configurations can also contain credentials, SNMP communities, routing information and other sensitive data.
+The compatibility entry point now rejects unverified SSH identities and uses the structured private export format above instead of loose `.cfg` files. It still continues after a device failure and returns a nonzero exit code for partial/failing collections. Existing backup files are not rewritten. Prefer the assistant for credentials entered interactively.
 
-For a larger environment I would not rely on environment variables alone. A proper secrets management solution would make more sense. For this first lab, though, I want to keep the number of moving parts small.
+## Boundaries and evidence
 
----
+- Netmiko transport and profiles for IOS, IOS XE, IOS XR and NX-OS; **fresh real-device tests are pending for every platform**.
+- Automated coverage includes actual Textual navigation, synthetic adapters, failure injection, export integrity/permissions, and real Netmiko exchanges against a loopback Paramiko protocol fixture. That fixture is not a Cisco device emulator or interoperability certification.
+- No scheduled jobs, secrets vault, automatic Git upload, restore, configuration changes, distributed collectors or NETCONF implementation in this preview.
+- No raw outputs, inventories or access credentials are uploaded by the application. Backups can contain device secrets; keep them out of Git and use appropriate encrypted storage. Checksums detect changes relative to a trusted manifest; they are not signatures or encryption.
+- Maximum 100 devices, 50 queries/device, 1 MB inventory, 8 MiB retained output/query and 64 MiB retained output/collection. Output limits are checked **after Netmiko returns**, so they do not bound transport-time memory use. Keep expensive queries out of the plan.
 
-## Where I want to take this next
+[Operations and security](docs/operations.md) · [Automated validation](docs/validation.md) · [Screenshot provenance](docs/screenshots/README.md)
 
-I plan to keep evolving the same project instead of jumping directly into a much more complicated example.
+## Development
 
-```text
- v1  Basic configuration backup
- |
- v2  Better inventory + additional platforms
- |
- v3  Structured logging + better error reporting
- |
- v4  Detect configuration changes
- |
- v5  Store configuration history in Git
- |
- v6  Rebuild the workflow using NETCONF
+```bash
+python -m pip install -e '.[dev]'
+python -m pytest -q
+ruff check src tests scripts backup.py
+ruff format --check src tests scripts backup.py
+python -m build
+python scripts/capture.py
 ```
 
-The last step is particularly interesting to me. At that point we can compare the CLI-based approach we started with against a model-driven approach and understand why technologies such as NETCONF and YANG matter, instead of learning them only as abstract concepts.
-
-For now, though, the objective is much simpler:
-
-**Take one networking task you already understand and automate it.**
-
-Then improve it one step at a time.
+Tests prohibit external socket connections; SSH integration fixtures bind only to loopback. CI runs on Python 3.11, 3.12 and 3.13. Real-device testing is a separate, owner-controlled step.

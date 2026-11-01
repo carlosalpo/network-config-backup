@@ -1,0 +1,4 @@
+include backup.py inventory.example.yaml requirements.txt PRODUCT.md DESIGN.md
+recursive-include examples *.csv
+recursive-include docs *.md *.json *.svg
+recursive-include scripts *.py

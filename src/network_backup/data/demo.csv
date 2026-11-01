@@ -1,0 +1,5 @@
+name,host,device_type,group,site,port
+edge-01,192.0.2.11,cisco_xe,Campus,headquarters,22
+core-01,192.0.2.12,cisco_nxos,Datacenter,headquarters,22
+wan-01,198.51.100.21,cisco_xr,WAN,headquarters,22
+access-01,192.0.2.13,cisco_ios,Campus,headquarters,22

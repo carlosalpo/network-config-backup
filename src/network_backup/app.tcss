@@ -1,0 +1,45 @@
+Screen { background: #1c2126; color: #edf2f6; }
+#brand { color: #ff4c8b; text-style: bold; height: 4; padding: 1 2; background: #252c33; }
+#shell { height: 1fr; }
+#steps { width: 25; padding: 1 1; border-right: solid #657783; }
+#steps > Static { height: auto; min-height: 3; padding: 1; color: #bbc8d3; }
+#steps > .active { background: #253e46; color: #65cfda; text-style: bold; }
+#keys { margin-top: 2; color: #bbc8d3; }
+#workspace { width: 1fr; }
+#heading { height: 3; padding: 1 2; text-style: bold; color: #65cfda; }
+#pages { height: 1fr; }
+.page { padding: 0 2 1 2; }
+Label { margin-top: 1; height: auto; }
+Input, Select { margin-bottom: 1; }
+TextArea { height: 7; border: solid #657783; }
+#hosts { height: 4; }
+.columns { height: auto; }
+.column { width: 1fr; height: auto; padding-right: 2; }
+.actions { height: auto; min-height: 3; margin: 1 0; }
+.actions Button { margin-right: 1; }
+Button { min-width: 12; background: #252c33; border: solid #657783; color: #edf2f6; }
+Button.-primary { background: #65cfda; color: #102025; text-style: bold; }
+Button:focus { border: tall #ff4c8b; }
+Input:focus, TextArea:focus { border: tall #65cfda; }
+Checkbox { background: #1c2126; margin-bottom: 1; }
+DataTable { height: 10; margin: 1 0; background: #1c2126; }
+DataTable > .datatable--header { background: #252c33; color: #edf2f6; text-style: bold; }
+DataTable > .datatable--cursor { background: #253e46; color: #65cfda; }
+#results-table { height: 13; }
+.note { height: auto; color: #bbc8d3; margin: 1 0; }
+.subheading { color: #65cfda; text-style: bold; margin: 1 0; }
+#counts, #save-summary { height: auto; color: #ffce75; margin-bottom: 1; }
+#credential-status, #result-detail, #folder-preview, #contents { height: auto; }
+#result-detail { color: #ffce75; min-height: 3; }
+#status { height: auto; max-height: 4; min-height: 2; padding: 0 2; color: #ffce75; }
+#navigation { height: 4; padding: 0 2; }
+#navigation Button { margin-right: 2; }
+Footer { background: #252c33; }
+Screen.narrow #steps { width: 18; }
+Screen.narrow #steps > Static { padding: 0 1; }
+Screen.narrow #keys { display: none; }
+Screen.narrow .columns { layout: vertical; }
+Screen.narrow .column { width: 1fr; }
+Screen.narrow .actions { layout: vertical; height: auto; }
+Screen.narrow .actions Button { width: 1fr; }
+Screen.narrow .page { padding: 0 1; }

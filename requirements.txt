@@ -1,2 +1,2 @@
-netmiko
-PyYAML
+# Installs the assistant and its bounded runtime dependencies.
+-e .

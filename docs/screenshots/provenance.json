@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0rc1",
+  "source": "Actual Textual export_screenshot using DemoTransport",
+  "network": "No real device or network connection",
+  "real_device_validation": "pending",
+  "dimensions": "150x52 terminal cells; save-compact 80x30",
+  "sha256": {
+    "commands.svg": "ce2326b0664ac88de8c0700542bf8f2817aeb42b5894b92dde44db4e98ff7201",
+    "credentials.svg": "f19b04b94180a25bd7b745d384e502e2596f128f55b3ebff20988df764e10e0d",
+    "inventory.svg": "ae079dd95ca0e92b7e30e825dde4ae4f21b773eb38058d783d53ab491e58c48a",
+    "review.svg": "863b548ab58bdcbf32704a32fae80444a6079d6133cf6f8945b3d3546e508952",
+    "save-compact.svg": "47ff29237b8cd14cb90a6095c94b262ffe1e8c6c45a8eb51f79ed42c7b1ee78b",
+    "save.svg": "2deed504e534f9d56c0b890e48728925801d8f8805f3a362e56b9539e4055b4a"
+  }
+}

@@ -11,7 +11,7 @@ Python 3.11–3.13 on macOS or Linux. Use a dedicated environment:
 ```bash
 git clone https://github.com/carlosalpo/network-config-backup.git
 cd network-config-backup
-git switch feat/guided-backup-assistant  # review branch
+git switch --detach v0.2.0-rc.1  # published preview
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
